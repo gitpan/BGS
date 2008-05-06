@@ -1,0 +1,142 @@
+package BGS;
+
+use strict;
+use warnings;
+
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT = qw(bgs_call bgs_back bgs_wait);
+
+our $VERSION = '0.01';
+
+use IO::Select;
+use Storable qw(freeze thaw);
+
+
+my $sel = IO::Select->new();
+my %callbacks = (); 
+
+
+sub bgs_call(&$) {
+	my ($sub, $callback) = @_;
+
+	my $kid_pid = open my $fh, "-|";
+	defined $kid_pid or die "Can't fork: $!";
+
+	if ($kid_pid) {
+		
+		$sel->add($fh);
+		$callbacks{$fh} = $callback;
+	} else {
+		
+		binmode STDOUT;
+		print STDOUT freeze \ $sub->();
+		close STDOUT;
+		exit;
+	}
+}
+
+sub bgs_back(&) { shift }
+
+
+sub bgs_wait() {
+	my %from_kid;       
+	my $buf;            
+	my $blksize = 1024; 
+ 	while ($sel->count()) {
+ 		foreach my $fh ($sel->can_read()) {
+ 			my $len = sysread $fh, $buf, $blksize;
+ 			if ($len) {
+ 				push @{$from_kid{$fh}}, $buf;
+ 			} elsif (defined $len) { 
+				$sel->remove($fh); 
+				                   
+				close $fh or die "Kid exited: $?"; 
+
+ 				my $r = join "", @{$from_kid{$fh}};
+ 				delete $from_kid{$fh};
+
+ 				$callbacks{$fh}->(${thaw $r});
+ 				delete $callbacks{$fh};
+ 			} else {
+ 				die "Can't read '$fh': $!";
+ 			}
+ 		}
+ 	}
+}
+
+
+1;
+
+
+__END__
+
+
+=head1 NAME
+
+BGS - Background execution of subroutines in child processes.
+
+=head1 SYNOPSIS
+
+  use BGS;
+
+  my @foo;
+
+  foreach my $i (1 .. 2) {
+    bgs_call {
+      # child process
+      return "Start $i";
+    } bgs_back {
+      # callback subroutine
+      my $r = shift;
+      push @foo, "End $i. Result: '$r'.\n";
+    };
+  }
+
+  bgs_wait();
+
+  print foreach @foo;
+
+=head1 MOTIVATION
+
+The module was created when need to receive information from dozens of
+database servers in the shortest time appeared.
+
+=head1 DESCRIPTION
+
+=head2 bgs_call
+
+Child process is created for each subroutine, that is prescribed with
+B<bgs_call>, and it executes within this child process.
+
+The subroutine must return either a B<scalar> or a B<reference>!
+
+The answer of the subroutine passes to the callback subroutine as an argument.
+
+B<Attention>! The subroutine must print nothing in STDOUT!
+
+=head2 bgs_back
+
+The callback subroutine is described in B<bgs_back> block.
+
+The answer of B<bgs_call> subroutine passes to B<bgs_back> subroutine
+as an argument.
+
+=head2 bgs_wait
+
+Call of bgs_wait() reduces to child processes answers wait and
+callback subroutines execution.
+
+=head1 AUTHOR
+
+Nick Kostirya
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2008 by Nick Kostirya
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.8 or,
+at your option, any later version of Perl 5 you may have available.
+
+=cut
