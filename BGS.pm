@@ -7,7 +7,7 @@ use Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(bgs_call bgs_back bgs_wait);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use IO::Select;
 use Storable qw(freeze thaw);
@@ -20,26 +20,28 @@ my %callbacks = ();
 sub bgs_call(&$) {
 	my ($sub, $callback) = @_;
 
-	my $kid_pid = open my $fh, "-|";
+	pipe my $from_kid_fh, my $to_parent_fh or die "pipe: $!";
+
+	my $kid_pid = fork;
 	defined $kid_pid or die "Can't fork: $!";
 
 	if ($kid_pid) {
-		
-		$sel->add($fh);
-		$callbacks{$fh} = $callback;
+		$sel->add($from_kid_fh);
+		$callbacks{$from_kid_fh} = $callback;
 	} else {
-		
-		binmode STDOUT;
-		print STDOUT freeze \ $sub->();
-		close STDOUT;
+		binmode $to_parent_fh;
+		print $to_parent_fh freeze \ $sub->();
+		close $to_parent_fh;
 		exit;
 	}
+	return $kid_pid;
 }
 
 sub bgs_back(&) { shift }
 
 
 sub bgs_wait() {
+	local $SIG{CHLD} = "IGNORE";
 	my %from_kid;       
 	my $buf;            
 	my $blksize = 1024; 
@@ -50,14 +52,14 @@ sub bgs_wait() {
  				push @{$from_kid{$fh}}, $buf;
  			} elsif (defined $len) { 
 				$sel->remove($fh); 
-				                   
-				close $fh or die "Kid exited: $?"; 
+				close $fh or warn "Kid is existed: $?";
 
  				my $r = join "", @{$from_kid{$fh}};
  				delete $from_kid{$fh};
 
  				$callbacks{$fh}->(${thaw $r});
  				delete $callbacks{$fh};
+
  			} else {
  				die "Can't read '$fh': $!";
  			}
@@ -113,7 +115,7 @@ The subroutine must return either a B<scalar> or a B<reference>!
 
 The answer of the subroutine passes to the callback subroutine as an argument.
 
-B<Attention>! The subroutine must print nothing in STDOUT!
+bgs_call return PID of child proces.
 
 =head2 bgs_back
 
