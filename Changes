@@ -1,8 +1,12 @@
 Revision history for Perl extension BGS.
 
-0.02  Fri Nov 27 09:41:26 EET 2009
+0.03  2010-01-17
+	- bgs_call can return undef
+	- without bgs_call value returning detection
+
+0.02  2009-11-27
 	- using pipe instead open
 	- bgs_call return PID of child proces
 
-0.01  Thu May  1 05:39:26 2008
+0.01  2008-03-01
 	- original version

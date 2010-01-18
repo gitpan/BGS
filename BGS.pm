@@ -7,7 +7,7 @@ use Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(bgs_call bgs_back bgs_wait);
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use IO::Select;
 use Storable qw(freeze thaw);
@@ -30,7 +30,7 @@ sub bgs_call(&$) {
 		$callbacks{$from_kid_fh} = $callback;
 	} else {
 		binmode $to_parent_fh;
-		print $to_parent_fh freeze \ $sub->();
+		print $to_parent_fh freeze \ scalar $sub->();
 		close $to_parent_fh;
 		exit;
 	}
@@ -54,10 +54,14 @@ sub bgs_wait() {
 				$sel->remove($fh); 
 				close $fh or warn "Kid is existed: $?";
 
- 				my $r = join "", @{$from_kid{$fh}};
- 				delete $from_kid{$fh};
+				if (exists $from_kid{$fh}) {
+	 				my $r = join "", @{$from_kid{$fh}};
+ 					delete $from_kid{$fh};
+					$callbacks{$fh}->(${thaw $r});
+				} else {
+					$callbacks{$fh}->();
+				}
 
- 				$callbacks{$fh}->(${thaw $r});
  				delete $callbacks{$fh};
 
  			} else {
@@ -114,6 +118,7 @@ B<bgs_call>, and it executes within this child process.
 The subroutine must return either a B<scalar> or a B<reference>!
 
 The answer of the subroutine passes to the callback subroutine as an argument.
+If a child process ended without bgs_call value returning, than bgs_back subprogram is called without argument.
 
 bgs_call return PID of child proces.
 
