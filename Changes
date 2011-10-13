@@ -1,5 +1,8 @@
 Revision history for Perl extension BGS.
 
+0.04  2011-10-13
+	- BGS::Limit
+
 0.03  2010-01-17
 	- bgs_call can return undef
 	- without bgs_call value returning detection

@@ -7,7 +7,7 @@ use Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(bgs_call bgs_back bgs_wait);
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use IO::Select;
 use Storable qw(freeze thaw);
@@ -140,7 +140,7 @@ Nick Kostirya
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2008 by Nick Kostirya
+Copyright (C) 2011 by Nick Kostirya
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.8 or,
