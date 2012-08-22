@@ -1,5 +1,12 @@
 Revision history for Perl extension BGS.
 
+0.06  2012-08-22
+	- BGS::Limit::bgs_wait($limit): if $limit == 0, child processes are not used
+
+0.05  2011-10-20
+	- bgs_break - kill all child processes
+	- BGS::Limit::bgs_call do not return kid_pid, but count of kid processes
+
 0.04  2011-10-13
 	- BGS::Limit
 

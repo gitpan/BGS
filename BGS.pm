@@ -5,13 +5,15 @@ use warnings;
 
 use Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(bgs_call bgs_back bgs_wait);
+our @EXPORT = qw(bgs_call bgs_back bgs_wait bgs_break);
 
-our $VERSION = '0.04';
+our $VERSION = '0.06';
 
 use IO::Select;
 use Storable qw(freeze thaw);
 
+
+$SIG{CHLD} = "IGNORE";
 
 my $sel = IO::Select->new();
 my %callbacks = (); 
@@ -41,7 +43,7 @@ sub bgs_back(&) { shift }
 
 
 sub bgs_wait() {
-	local $SIG{CHLD} = "IGNORE";
+	local $SIG{PIPE} = "IGNORE";
 	my %from_kid;       
 	my $buf;            
 	my $blksize = 1024; 
@@ -69,6 +71,13 @@ sub bgs_wait() {
  			}
  		}
  	}
+}
+
+
+sub bgs_break() {
+	local $SIG{TERM} = "IGNORE";
+	kill 15, -$$;
+	1 while wait > 0;
 }
 
 
@@ -133,6 +142,10 @@ as an argument.
 
 Call of bgs_wait() reduces to child processes answers wait and
 callback subroutines execution.
+
+=head2 bgs_break
+
+kill all child processes.
 
 =head1 AUTHOR
 

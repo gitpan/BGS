@@ -6,3 +6,4 @@ t/1_bgs.t
 t/2_limit.t
 BGS.pm
 BGS/Limit.pm
+META.yml                                 Module meta-data (added by MakeMaker)

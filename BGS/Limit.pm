@@ -5,9 +5,9 @@ use warnings;
 
 use Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(bgs_call bgs_back bgs_wait);
+our @EXPORT = qw(bgs_call bgs_back bgs_wait bgs_break);
 
-our $VERSION = '0.04';
+our $VERSION = '0.06';
 
 use BGS ();
 
@@ -31,8 +31,22 @@ sub do_job {
 
 sub bgs_wait($) {
 	my ($max) = @_;
-	do_job() foreach 1 .. $max;
-	BGS::bgs_wait();
+	if ($max) {
+		do_job() foreach 1 .. $max;
+		BGS::bgs_wait();
+	} else {
+		foreach (@jobs) {
+			my ($sub, $callback) = @$_;
+			my $r = $sub->();
+			$callback->($r);
+		}
+	}
+}
+
+
+sub bgs_break() {
+	@jobs = ();
+	BGS::bgs_break();
 }
 
 
@@ -68,9 +82,13 @@ BGS::Limit - Background execution of subroutines in child processes with limit o
 
   print foreach @foo;
 
+If $limit == 0, child processes are not used.
+
 =head1 ATTENTION
 
 Do not use $_ in bgs_call.
+
+bgs_call do not return kid_pid, but count of kid processes.
 
 =head1 SEE
 
