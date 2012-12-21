@@ -7,10 +7,11 @@ use Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(bgs_call bgs_back bgs_wait bgs_break);
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 use IO::Select;
 use Storable qw(freeze thaw);
+use POSIX ":sys_wait_h";
 
 
 $SIG{CHLD} = "IGNORE";
@@ -77,7 +78,7 @@ sub bgs_wait() {
 sub bgs_break() {
 	local $SIG{TERM} = "IGNORE";
 	kill 15, -$$;
-	1 while wait > 0;
+	1 while waitpid(-1, WNOHANG) > 0;
 }
 
 

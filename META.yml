@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               BGS
-version:            0.06
+version:            0.07
 abstract:           Background execution of subroutines in child processes.
 author:
     - Nick Kostirya <nick@ToDo.org>
